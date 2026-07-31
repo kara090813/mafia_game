@@ -1,0 +1,23 @@
+{
+  "name": "party-games",
+  "private": true,
+  "workspaces": [
+    "client",
+    "server",
+    "shared"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
+    "dev:server": "npm run dev --workspace=server",
+    "dev:client": "npm run dev --workspace=client",
+    "build": "npm run build:client && echo 'Build complete'",
+    "build:client": "cd client && npm run build",
+    "start": "cd server && npx tsx src/index.ts",
+    "railway:build": "npm install && npm run build",
+    "railway:start": "NODE_ENV=production npm start"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0",
+    "typescript": "^5.7.0"
+  }
+}
