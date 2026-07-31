@@ -43,10 +43,21 @@ export function AvalonGame() {
   const currentPhase = avalonState?.phase;
   useEffect(() => { setMyTeamVote(null); setMyQuestVote(null); }, [currentPhase]);
 
-  // 게임 종료 시 로비로
+  // 게임 종료 시 2초 대기 후 리다이렉트
+  const [waitingRedirect, setWaitingRedirect] = useState(false);
   useEffect(() => {
-    if (!avalonState && room && room.status === 'waiting') navigate('/lobby');
-  }, [avalonState, room]);
+    if (!avalonState) {
+      const t = setTimeout(() => setWaitingRedirect(true), 2000);
+      return () => clearTimeout(t);
+    }
+    setWaitingRedirect(false);
+  }, [avalonState]);
+
+  useEffect(() => {
+    if (waitingRedirect && !avalonState) {
+      navigate(room ? '/lobby' : '/');
+    }
+  }, [waitingRedirect, avalonState, room]);
 
   if (!avalonState || !room) {
     return <div className="app"><div className="page-center"><p className="text-center text-dim text-sm">게임 상태 로딩 중...</p></div></div>;

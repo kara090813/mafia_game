@@ -54,9 +54,21 @@ export function MafiaGame() {
   const [dragRole, setDragRole] = useState<string | null>(null);
   const [dropTarget, setDropTarget] = useState<string | null>(null);
 
+  const [waitingRedirect, setWaitingRedirect] = useState(false);
   useEffect(() => {
-    if (!mafiaState && room && room.status === 'waiting') navigate('/lobby');
-  }, [mafiaState, room]);
+    if (!mafiaState) {
+      // 2초 대기 후에도 복구 안 되면 리다이렉트
+      const t = setTimeout(() => setWaitingRedirect(true), 2000);
+      return () => clearTimeout(t);
+    }
+    setWaitingRedirect(false);
+  }, [mafiaState]);
+
+  useEffect(() => {
+    if (waitingRedirect && !mafiaState) {
+      navigate(room ? '/lobby' : '/');
+    }
+  }, [waitingRedirect, mafiaState, room]);
 
   if (!mafiaState) {
     return <div className="app"><div className="page-center"><p className="text-center text-dim text-sm">게임 상태 로딩 중...</p></div></div>;
@@ -455,7 +467,7 @@ export function MafiaGame() {
         </div>
       )}
 
-      {/* ===== 메모 팝업 (드래그앤드롭) ===== */}
+      {/* ===== 메모 팝업 ===== */}
       {memoOpen && (
         <div className="memo-popup" onClick={closeMemo}>
           <div className="memo-popup-card" onClick={e => e.stopPropagation()}
@@ -463,33 +475,51 @@ export function MafiaGame() {
             style={{ userSelect: 'none', WebkitUserSelect: 'none' }}>
             <div className="row row-between" style={{ padding: '14px 16px', borderBottom: '1px solid var(--border)' }}>
               <span style={{ fontWeight: 700, fontSize: 15 }}>유저 메모</span>
-              <button className="btn-ghost btn-sm" style={{ width: 'auto' }} onClick={closeMemo}>닫기</button>
+              <div className="row gap-8">
+                {/* 드래그 중 표시 */}
+                {dragRole && (
+                  <span style={{ fontSize: 13, fontWeight: 700, color: MAFIA_ROLES.includes(dragRole) ? 'var(--red)' : 'var(--green)', background: 'var(--bg-input)', padding: '4px 12px', borderRadius: 12 }}>
+                    {ROLE_NAMES[dragRole]} 배치 중
+                  </span>
+                )}
+                <button className="btn-ghost btn-sm" style={{ width: 'auto' }} onClick={closeMemo}>닫기</button>
+              </div>
             </div>
             <div className="memo-popup-body">
-              {/* 유저 그리드 (드롭 영역) */}
-              <div className="memo-grid">
+              {/* 유저 그리드 (드롭 / 탭 영역) */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 16 }}>
                 {s.players.map(p => {
                   const isDead = !p.isAlive;
                   const rev = s.revealedRoles?.[p.id];
                   const guess = guesses[p.id];
+                  const isTarget = dropTarget === p.id;
                   return (
                     <div key={p.id}
                       data-player-id={p.id}
-                      className={`memo-cell ${dropTarget === p.id ? 'drop-target' : ''}`}
-                      style={{ background: isDead ? 'rgba(232,93,93,0.05)' : undefined, opacity: isDead ? 0.6 : 1 }}
+                      style={{
+                        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
+                        padding: '10px 4px', minHeight: 80,
+                        background: isTarget ? 'rgba(91,155,247,0.12)' : isDead ? 'rgba(232,93,93,0.05)' : 'var(--bg-input)',
+                        borderRadius: 10, border: `2px solid ${isTarget ? 'var(--blue)' : 'transparent'}`,
+                        opacity: isDead ? 0.6 : 1, transition: 'border-color 0.1s, background 0.1s',
+                      }}
+                      onClick={() => {
+                        // 탭으로도 배치 가능 (드래그 중이면)
+                        if (dragRole) { handleDrop(p.id); return; }
+                      }}
                       onDragOver={e => { e.preventDefault(); setDropTarget(p.id); }}
                       onDragLeave={() => setDropTarget(null)}
                       onDrop={e => { e.preventDefault(); handleDrop(p.id); }}>
-                      <Avatar name={p.nickname} size={26} dead={isDead} />
-                      <span className="memo-cell-name">{p.nickname}</span>
-                      {isDead && <span style={{ fontSize: 7, color: 'var(--red)', fontWeight: 700 }}>사망</span>}
+                      <Avatar name={p.nickname} size={30} dead={isDead} />
+                      <span style={{ fontSize: 10, fontWeight: 600, textAlign: 'center', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', width: '100%' }}>{p.nickname}</span>
+                      {isDead && <span style={{ fontSize: 8, color: 'var(--red)', fontWeight: 700 }}>사망</span>}
                       {rev
-                        ? <span style={{ fontSize: 8, color: 'var(--text-dim)', fontWeight: 600 }}>{rev}</span>
+                        ? <span style={{ fontSize: 9, color: 'var(--text-dim)', fontWeight: 600 }}>{rev}</span>
                         : guess
-                          ? <span className="memo-cell-role">{ROLE_NAMES[guess]}</span>
-                          : <span style={{ fontSize: 8, color: 'var(--text-dim)' }}>-</span>}
+                          ? <span style={{ fontSize: 9, color: 'var(--orange)', fontWeight: 600 }}>{ROLE_NAMES[guess]}</span>
+                          : <span style={{ fontSize: 9, color: 'var(--text-dim)' }}>-</span>}
                       {guess && !rev && (
-                        <span style={{ fontSize: 8, color: 'var(--text-dim)', cursor: 'pointer', padding: '2px 4px' }}
+                        <span style={{ fontSize: 8, color: 'var(--text-dim)', cursor: 'pointer', padding: '2px 6px', background: 'var(--bg-card)', borderRadius: 4 }}
                           onClick={(e) => { e.stopPropagation(); setGuesses(prev => { const n = { ...prev }; delete n[p.id]; return n; }); }}>초기화</span>
                       )}
                     </div>
@@ -497,19 +527,34 @@ export function MafiaGame() {
                 })}
               </div>
 
-              {/* 직업 칩 (드래그 소스) */}
-              <p className="text-dim text-xs" style={{ marginBottom: 6 }}>직업을 끌어서 유저에게 놓으세요</p>
-              <div className="role-chips">
-                {ALL_GUESS_ROLES.map(r => (
-                  <button key={r}
-                    className={`role-chip ${MAFIA_ROLES.includes(r) ? 'chip-mafia' : r !== 'unknown' ? 'chip-citizen' : ''}`}
-                    draggable
-                    onDragStart={() => handleDragStart(r)}
-                    onDragEnd={handleDragEnd}
-                    onTouchStart={() => handleDragStart(r)}>
-                    {ROLE_NAMES[r]}
-                  </button>
-                ))}
+              {/* 직업 칩 (드래그/탭 소스) */}
+              <p className="text-dim text-xs" style={{ marginBottom: 8 }}>직업을 길게 눌러 유저에게 놓거나, 탭 후 유저를 탭하세요</p>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                {ALL_GUESS_ROLES.map(r => {
+                  const isActive = dragRole === r;
+                  const isMafia = MAFIA_ROLES.includes(r);
+                  return (
+                    <button key={r}
+                      style={{
+                        padding: '10px 14px', fontSize: 13, fontWeight: 700, borderRadius: 20,
+                        background: isActive ? (isMafia ? 'var(--red)' : r === 'unknown' ? 'var(--text-dim)' : 'var(--green)') : 'var(--bg-input)',
+                        color: isActive ? '#fff' : isMafia ? 'var(--red)' : r === 'unknown' ? 'var(--text-dim)' : 'var(--green)',
+                        border: `1.5px solid ${isMafia ? 'var(--red)' : r === 'unknown' ? 'var(--border)' : 'var(--green)'}`,
+                        width: 'auto', cursor: 'grab', touchAction: 'none', userSelect: 'none',
+                        WebkitUserSelect: 'none', transition: 'background 0.1s, color 0.1s',
+                      }}
+                      draggable
+                      onDragStart={() => handleDragStart(r)}
+                      onDragEnd={handleDragEnd}
+                      onTouchStart={() => handleDragStart(r)}
+                      onClick={() => {
+                        // 탭으로 선택/해제 토글
+                        if (dragRole === r) { setDragRole(null); } else { setDragRole(r); }
+                      }}>
+                      {ROLE_NAMES[r]}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </div>
