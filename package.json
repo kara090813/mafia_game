@@ -16,6 +16,9 @@
     "railway:build": "npm install && npm run build",
     "railway:start": "NODE_ENV=production npm start"
   },
+  "engines": {
+    "node": ">=22"
+  },
   "devDependencies": {
     "concurrently": "^9.1.0",
     "typescript": "^5.7.0"
