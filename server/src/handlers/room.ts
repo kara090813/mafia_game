@@ -47,15 +47,23 @@ export function registerRoomHandlers(io: IO, socket: ClientSocket, roomManager: 
 
     let gameState: unknown = undefined;
     if (room.status === 'playing') {
-      const state = roomManager.getGameState(room.code);
-      if (state && 'dayNumber' in state) {
-        const game = MafiaGame.fromState(state);
-        if (oldId) game.setReconnected(oldId, socket.id);
-        roomManager.setGameState(room.code, game.getState());
-        gameState = { type: 'mafia', state: game.getClientState(socket.id) };
-      } else if (state && 'currentQuest' in state) {
-        const game = AvalonGame.fromState(state);
-        gameState = { type: 'avalon', state: game.getClientState(socket.id) };
+      try {
+        const state = roomManager.getGameState(room.code);
+        if (state && 'dayNumber' in state) {
+          const game = MafiaGame.fromState(state);
+          if (oldId) game.setReconnected(oldId, socket.id);
+          roomManager.setGameState(room.code, game.getState());
+          gameState = { type: 'mafia', state: game.getClientState(socket.id) };
+        } else if (state && 'currentQuest' in state) {
+          const game = AvalonGame.fromState(state);
+          if (oldId) game.setReconnected(oldId, socket.id);
+          roomManager.setGameState(room.code, game.getState());
+          gameState = { type: 'avalon', state: game.getClientState(socket.id) };
+        }
+      } catch (err) {
+        // 재접속 중 게임 상태 복원 실패해도 서버 전체가 죽지 않도록 방어
+        console.error(`[재접속 오류] ${room.code} - ${nickname}:`, err);
+        gameState = undefined;
       }
     }
 

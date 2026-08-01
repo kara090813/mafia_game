@@ -61,6 +61,33 @@ export class AvalonGame {
     return game;
   }
 
+  // 재접속 시 바뀐 소켓 id를 게임 상태 전반에 반영 (없으면 getClientState에서 크래시)
+  setReconnected(oldId: string, newId: string): void {
+    if (oldId === newId) return;
+
+    const player = this.state.players.find(p => p.id === oldId);
+    if (player) player.id = newId;
+
+    const swap = (id: string) => (id === oldId ? newId : id);
+    this.state.playerOrder = this.state.playerOrder.map(swap);
+    this.state.proposedTeam = this.state.proposedTeam.map(swap);
+    this.state.skipVoters = this.state.skipVoters.map(swap);
+
+    for (const v of this.state.teamVotes) {
+      if (v.playerId === oldId) v.playerId = newId;
+    }
+
+    if (this.state.questVotes.has(oldId)) {
+      const val = this.state.questVotes.get(oldId)!;
+      this.state.questVotes.delete(oldId);
+      this.state.questVotes.set(newId, val);
+    }
+
+    if (this.state.assassinationTarget === oldId) {
+      this.state.assassinationTarget = newId;
+    }
+  }
+
   private assignRoles(count: number, comp: { angel: number; demon: number }): AvalonRole[] {
     const roles: AvalonRole[] = [];
     roles.push('archdemon');

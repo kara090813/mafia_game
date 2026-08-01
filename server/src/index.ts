@@ -66,3 +66,11 @@ function shutdown() {
 
 process.on('SIGTERM', shutdown);
 process.on('SIGINT', shutdown);
+
+// 처리되지 않은 예외로 서버 전체(모든 방)가 죽는 것을 방지 — 로그만 남기고 유지
+process.on('uncaughtException', (err) => {
+  console.error('[uncaughtException]', err);
+});
+process.on('unhandledRejection', (reason) => {
+  console.error('[unhandledRejection]', reason);
+});
