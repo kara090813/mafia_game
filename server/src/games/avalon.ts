@@ -149,13 +149,13 @@ export class AvalonGame {
       return { success: false, error: '투표 단계가 아닙니다.' };
     }
 
-    if (this.state.teamVotes.some(v => v.playerId === playerId)) {
-      return { success: false, error: '이미 투표했습니다.' };
-    }
-
     this.state.phase = 'team_vote';
+
+    // 재투표 허용 — 기존 투표를 제거하고 최신 투표로 덮어씀 (변경 가능)
+    this.state.teamVotes = this.state.teamVotes.filter(v => v.playerId !== playerId);
     this.state.teamVotes.push({ playerId, approve });
 
+    // 모든 인원이 투표하면 시간과 무관하게 즉시 진행
     if (this.state.teamVotes.length === this.state.players.length) {
       this.resolveTeamVote();
     }
@@ -199,17 +199,15 @@ export class AvalonGame {
       return { success: false, error: '원정대원만 투표할 수 있습니다.' };
     }
 
-    if (this.state.questVotes.has(playerId)) {
-      return { success: false, error: '이미 투표했습니다.' };
-    }
-
     const player = this.state.players.find(p => p.id === playerId)!;
     if ((player.team === 'angel') && !success) {
       return { success: false, error: '천사 진영은 반드시 성공을 선택해야 합니다.' };
     }
 
+    // 재투표 허용 — Map.set이 기존 값을 덮어씀 (변경 가능)
     this.state.questVotes.set(playerId, success);
 
+    // 원정대원이 모두 투표하면 시간과 무관하게 즉시 진행
     if (this.state.questVotes.size === this.state.proposedTeam.length) {
       this.resolveQuest();
     }

@@ -39,9 +39,13 @@ export function AvalonGame() {
   const [myTeamVote, setMyTeamVote] = useState<boolean | null>(null);
   const [myQuestVote, setMyQuestVote] = useState<boolean | null>(null);
 
-  // 페이즈 바뀌면 투표 상태 리셋
+  // 투표 단계를 벗어날 때만 로컬 투표 상태 리셋
+  // (team_discussion↔team_vote는 같은 원정대 투표 단계이므로 선택 유지 → 변경 가능)
   const currentPhase = avalonState?.phase;
-  useEffect(() => { setMyTeamVote(null); setMyQuestVote(null); }, [currentPhase]);
+  const isTeamVoteStage = currentPhase === 'team_discussion' || currentPhase === 'team_vote';
+  const isQuestStage = currentPhase === 'quest';
+  useEffect(() => { if (!isTeamVoteStage) setMyTeamVote(null); }, [isTeamVoteStage]);
+  useEffect(() => { if (!isQuestStage) setMyQuestVote(null); }, [isQuestStage]);
 
   // 게임 종료 시 2초 대기 후 리다이렉트
   const [waitingRedirect, setWaitingRedirect] = useState(false);
