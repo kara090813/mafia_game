@@ -171,7 +171,7 @@ export function AvalonGame() {
       {s.phase !== 'role_reveal' && (
         <div className="main-tabs">
           <button className={`main-tab ${tab === 'main' ? 'active' : ''}`} onClick={() => setTab('main')}>메인</button>
-          <button className={`main-tab ${tab === 'chat' ? 'active' : ''}`} onClick={() => setTab('chat')}>채팅</button>
+          <button className={`main-tab ${tab === 'chat' ? 'active' : ''}`} onClick={() => setTab('chat')}>채팅/기록</button>
         </div>
       )}
 
@@ -429,6 +429,28 @@ export function AvalonGame() {
       {tab === 'chat' && s.phase !== 'role_reveal' && (
         <div className="tab-content">
           <div className="tab-scroll">
+            {/* 원정 기록 — 각 원정에 참여한 멤버만 표시 (성공/실패는 노출 안 함) */}
+            {s.questResults.length > 0 && (
+              <div className="card stack stack-8" style={{ marginBottom: 12 }}>
+                <p className="text-sm text-dim" style={{ fontWeight: 700 }}>원정 기록</p>
+                {s.questResults.map(r => (
+                  <div key={r.questNumber} style={{ borderTop: '1px solid var(--border)', paddingTop: 8 }}>
+                    <div className="row" style={{ gap: 6, alignItems: 'center', marginBottom: 6 }}>
+                      <span style={{ fontSize: 12, fontWeight: 700 }}>{r.questNumber}차 원정</span>
+                      <span className="text-xs text-dim">참여 {r.teamMembers.length}명</span>
+                    </div>
+                    <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
+                      {r.teamMembers.map(id => (
+                        <div key={id} className="row" style={{ gap: 4, alignItems: 'center', background: 'var(--bg-input)', borderRadius: 20, padding: '3px 10px 3px 4px' }}>
+                          <Avatar name={nick(id)} size={18} />
+                          <span style={{ fontSize: 12 }}>{nick(id)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
             <Chat />
           </div>
         </div>
