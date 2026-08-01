@@ -51,8 +51,13 @@ export function registerAvalonHandlers(
           s.proposedTeam = [];
           s.teamVotes = [];
         }
+      } else if (phase === 'team_discussion' || phase === 'team_vote') {
+        // 찬반 투표 시간 종료 → 현재까지의 표로 확정 (무한 대기 방지)
+        game.finalizeTeamVote();
+      } else if (phase === 'quest') {
+        // 원정 수행 시간 종료 → 미투표는 성공 처리 후 확정
+        game.finalizeQuest();
       }
-      // team_vote, quest 등은 타이머 만료 시 대기 유지 (참여자가 행동해야 함)
 
       roomManager.setGameState(roomCode, game.getState());
 

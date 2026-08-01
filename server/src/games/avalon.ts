@@ -85,6 +85,21 @@ export class AvalonGame {
     return { success: true, delta: delta > 0 ? 10 : -10 };
   }
 
+  // 원정대 찬반 투표 타이머 만료 → 현재까지의 표로 확정 (미투표는 미집계)
+  finalizeTeamVote(): void {
+    if (this.state.phase !== 'team_discussion' && this.state.phase !== 'team_vote') return;
+    this.resolveTeamVote();
+  }
+
+  // 원정 수행 타이머 만료 → 미투표 원정대원은 성공으로 처리 후 확정
+  finalizeQuest(): void {
+    if (this.state.phase !== 'quest') return;
+    for (const id of this.state.proposedTeam) {
+      if (!this.state.questVotes.has(id)) this.state.questVotes.set(id, true);
+    }
+    this.resolveQuest();
+  }
+
   advanceFromQuestResult(): void {
     if (this.state.phase !== 'quest_result') return;
 
